@@ -1,39 +1,45 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
   Alert,
   Modal,
 } from "react-native";
-import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
+import * as MediaLibrary from "expo-media-library";
 
 const HomeScreen = () => {
-  const [userName, setUserName] = useState(""); // State to store the user's name
-  const [hasPermission, setHasPermission] = useState(null); // Permission for the camera
-  const [scannerVisible, setScannerVisible] = useState(false); // Modal visibility
+  const [hasPermission, setHasPermission] = useState(null);
+  const [cameraVisible, setCameraVisible] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const [scanData, setScanData] = useState(null);
+  const cameraRef = useRef(null);
 
-  // Simulating fetching the name (e.g., from an API or local storage)
   useEffect(() => {
-    const fetchUserName = async () => {
-      const nameFromVendpayId = ""; // Replace this with real logic to get the name
-      setUserName(nameFromVendpayId);
-    };
-
-    fetchUserName();
-
-    // Request permission for the camera
-    const getCameraPermission = async () => {
+    (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === "granted");
-    };
-
-    getCameraPermission();
+      const mediaStatus = await MediaLibrary.requestPermissionsAsync();
+      setHasPermission(status === "granted" && mediaStatus.status === "granted");
+    })();
   }, []);
+
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      const photo = await cameraRef.current.takePictureAsync();
+      await MediaLibrary.saveToLibraryAsync(photo.uri);
+      Alert.alert("Photo Saved", "The photo has been saved to your gallery.");
+    }
+  };
+
+  const handleBarCodeScanned = ({ type, data }) => {
+    setScanned(true);
+    setScanData(data);
+    Alert.alert("QR Code Scanned", `Data: ${data}`);
+  };
 
   if (hasPermission === null) {
     return <Text>Requesting for camera permissions...</Text>;
@@ -44,146 +50,55 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Top Header */}
-      <View style={styles.header}>
-        <Text style={styles.time}>9:49</Text>
-        <View style={styles.profile}>
-          <Image
-            source={{ uri: "https://via.placeholder.com/50" }} // Replace with the actual profile image
-            style={styles.profileImage}
-          />
-          <Text style={styles.greeting}>Hi, {userName}</Text>
-          <Ionicons name="checkmark-circle" size={16} color="green" />
-        </View>
-        <View style={styles.headerIcons}>
-          <Ionicons name="search" size={24} color="#fff" />
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-          <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-        </View>
-      </View>
-
-      {/* Features Section */}
       <ScrollView>
-        <View style={styles.featuresSection}>
-          <View style={styles.featureRow}>
-            <FeatureIcon name="Load Money" icon="wallet" />
-          </View>
-          <Text style={styles.sectionTitle}>Utility & Bill Payments</Text>
-          <View style={styles.featureRow}>
-            <FeatureIcon name="Live Inventory" icon="mobile" />
-          </View>
-        </View>
-
-        {/* QR Code Scanner Button */}
         <TouchableOpacity
-          style={styles.qrScannerButton}
-          onPress={() => setScannerVisible(true)}
+          style={styles.cameraButton}
+          onPress={() => setCameraVisible(true)}
         >
-          <Ionicons name="qr-code-outline" size={32} color="#fff" />
-          <Text style={styles.qrScannerText}>Open Camera</Text>
+          <Ionicons name="camera" size={32} color="#fff" />
+          <Text style={styles.cameraText}>Open Camera</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Camera Modal */}
-      <Modal visible={scannerVisible} animationType="slide">
-        <View style={styles.scannerContainer}>
-          <Camera style={StyleSheet.absoluteFillObject} />
+      <Modal visible={cameraVisible} animationType="slide">
+        <View style={styles.cameraContainer}>
+          <Camera
+            ref={cameraRef}
+            style={StyleSheet.absoluteFillObject}
+            onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+            barCodeScannerSettings={{
+              barCodeTypes: [Camera.Constants.BarCodeTypes.QR],
+            }}
+          />
+          {scanned && (
+            <TouchableOpacity
+              style={styles.rescanButton}
+              onPress={() => setScanned(false)}
+            >
+              <Text style={styles.rescanText}>Scan Again</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
+            <Text style={styles.captureText}>Capture</Text>
+          </TouchableOpacity>
           <TouchableOpacity
-            style={styles.closeScannerButton}
-            onPress={() => setScannerVisible(false)}
+            style={styles.closeButton}
+            onPress={() => setCameraVisible(false)}
           >
-            <Text style={styles.closeScannerText}>Close</Text>
+            <Text style={styles.closeText}>Close</Text>
           </TouchableOpacity>
         </View>
       </Modal>
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <NavIcon name="Home" icon="home" active />
-        <NavIcon name="Statement" icon="document-text" />
-        <NavIcon name="Support" icon="help-circle" />
-        <NavIcon name="More" icon="apps" />
-      </View>
     </View>
   );
 };
-
-const FeatureIcon = ({ name, icon }) => (
-  <TouchableOpacity style={styles.featureIcon}>
-    <FontAwesome5 name={icon} size={24} color="#4CAF50" />
-    <Text style={styles.featureText}>{name}</Text>
-  </TouchableOpacity>
-);
-
-const NavIcon = ({ name, icon, active }) => (
-  <TouchableOpacity style={styles.navIcon}>
-    <Ionicons name={icon} size={28} color={active ? "#4CAF50" : "#aaa"} />
-    <Text style={[styles.navText, active && { color: "#4CAF50" }]}>{name}</Text>
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
-  header: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  time: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  profile: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  greeting: {
-    color: "#fff",
-    fontSize: 16,
-    marginRight: 5,
-  },
-  headerIcons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  featuresSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  featureRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 20,
-  },
-  featureIcon: {
-    alignItems: "center",
-    marginRight: 30,
-  },
-  featureText: {
-    fontSize: 12,
-    color: "#555",
-    marginTop: 5,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  qrScannerButton: {
+  cameraButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -192,41 +107,48 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 10,
   },
-  qrScannerText: {
+  cameraText: {
     color: "#fff",
     fontSize: 16,
     marginLeft: 10,
   },
-  scannerContainer: {
+  cameraContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  closeScannerButton: {
+  captureButton: {
+    position: "absolute",
+    bottom: 100,
+    backgroundColor: "#4CAF50",
+    padding: 10,
+    borderRadius: 20,
+  },
+  captureText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  rescanButton: {
+    position: "absolute",
+    bottom: 150,
+    backgroundColor: "#4CAF50",
+    padding: 10,
+    borderRadius: 20,
+  },
+  rescanText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  closeButton: {
     position: "absolute",
     bottom: 50,
     backgroundColor: "#fff",
     padding: 10,
     borderRadius: 20,
   },
-  closeScannerText: {
+  closeText: {
     color: "#4CAF50",
     fontWeight: "bold",
-  },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderColor: "#eee",
-  },
-  navIcon: {
-    alignItems: "center",
-  },
-  navText: {
-    fontSize: 12,
-    color: "#aaa",
   },
 });
 
