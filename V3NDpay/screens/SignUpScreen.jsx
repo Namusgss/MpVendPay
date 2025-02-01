@@ -52,7 +52,6 @@ const SignUpScreen = ({ navigation }) => {
 
   return (
 
-    temporary testing uncomment plx
     <View style={styles.container}>
       <Text style={styles.title}>Create an Account</Text>
 
