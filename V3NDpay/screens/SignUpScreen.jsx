@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,13 @@ import {
   Alert,
 } from "react-native";
 import axios from "axios";
-import HomeScreen from "./HomeScreen";
+import IP_ADDRESS from "../components/IPAddresses";
 
 const SignUpScreen = ({ navigation }) => {
+
+
+  // code to go to homescreen directly without login for tesing only
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
@@ -27,7 +31,7 @@ const SignUpScreen = ({ navigation }) => {
     setIsLoading(true); // Start loading
 
     try {
-      const response = await axios.post("http://192.168.1.72:8000/register", {
+      const response = await axios.post(`${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/register`, {
         username,
         password,
         email,
