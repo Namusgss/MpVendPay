@@ -18,29 +18,33 @@
       }
     },
     "android": {
-      "permissions": ["CAMERA"],
+      "permissions": [
+        "CAMERA"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
-    
-      "expo-camera":
-      {
-        "cameraPermission": "This app needs access to the camera to scan QR codes.",
-        "recordAudioAndroid": true
-      },
-    
+    "expo-camera": {
+      "cameraPermission": "This app needs access to the camera to scan QR codes.",
+      "recordAudioAndroid": true
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "newArchEnabled": true
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-barcode-scanner"
+    ]
   }
 }
