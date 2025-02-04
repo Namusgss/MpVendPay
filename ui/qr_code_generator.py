@@ -24,7 +24,7 @@ def generate_qr_code(product_data):
         # Format the data as a JSON string
         qr_data = {
              "identifier": "VENDING_MACHINE",
-            "name": product_data["name"],
+            "productname": product_data["name"],
             "total_price": product_data["price"],
             "quantity": product_data["quantity"],
             "timestamp": current_timestamp  # Add automatic timestamp

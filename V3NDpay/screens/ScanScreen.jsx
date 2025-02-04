@@ -1,13 +1,16 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
 import { Camera, CameraView } from "expo-camera";
 import { useNavigation } from "@react-navigation/native";
 
-const ScanScreen = () => {
+const ScanScreen =  ({ route })  => {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false); // Ensures scanning happens once
   const navigation = useNavigation();
   const cameraRef = useRef(null);
+  // const username = "user123"; // Example username, change it as needed
+  const { username } = route.params || { username: "Guest" };
 
   // Request camera permission
   useEffect(() => {
@@ -25,12 +28,28 @@ const ScanScreen = () => {
     try {
       const parsedData = JSON.parse(data);
 
-      // Validate QR code identifier
+      // Validate QR code identifier and amount
       if (parsedData.identifier === "VENDING_MACHINE") {
+        if (isNaN(parsedData.total_price) || parsedData.total_price <= 0) {
+          Alert.alert("Error", "Invalid price in QR code.");
+          return;
+        }
+      //     // Save transaction in database
+      //  fetch(`${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/save_transaction`, {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     username,
+      //     productName: parsedData.productname,
+      //     quantity: parsedData.quantity,
+      //     amount: parsedData.total_price,
+      //   }),
+      // });
         navigation.replace("PaymentScreen", {
-          productName: parsedData.productName,
+          username: username, // Ensure username is passed correctly here
+          productName: parsedData.productname,
           quantity: parsedData.quantity,
-          amount: parsedData.amount,
+          amount: parsedData.total_price,
         });
       } else {
         Alert.alert("Invalid QR Code", "This QR code is not from a vending machine.");

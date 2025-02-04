@@ -244,12 +244,13 @@ MONGO_URI = "mongodb://localhost:27017"  # Replace with your MongoDB URI
 DATABASE_NAME = "vendme"
 PRODUCT_COLLECTION_NAME = "productdetails"
 USER_COLLECTION_NAME = "userdata"
+HISTORY_COLLECTION_NAME = "purchase_history"
 
 client = MongoClient(MONGO_URI)
 db = client[DATABASE_NAME]
 product_collection = db[PRODUCT_COLLECTION_NAME]
 users_collection = db[USER_COLLECTION_NAME]
-
+history_collection = db[HISTORY_COLLECTION_NAME]
 
 
 
@@ -304,7 +305,7 @@ async def register_user(user: UserCreate):
         "email": user.email.strip().lower(),
         "password": user.password,
         "number": user.number.strip(),
-        "balance": 10000000.00  # Default balance for new users
+        "balance": 100.00  # Default balance for new users
     }
     users_collection.insert_one(user_data)
     return {"message": "User registered successfully"}
@@ -336,7 +337,7 @@ async def get_balance(username: str):
 @app.post("/process_payment")
 async def process_payment(request: PaymentRequest):
     username = request.username.strip().lower()
-
+    
     user = get_user_by_username(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -352,8 +353,36 @@ async def process_payment(request: PaymentRequest):
         {"username": username},
         {"$set": {"balance": new_balance}}
     )
-
     return {"message": "Payment processed successfully", "new_balance": new_balance}
+
+    # Model for storing transactions
+class PurchaseRecord(BaseModel):
+    username: str
+    productName: str
+    quantity: int
+    amount: float
+
+    # Save transaction after successful payment
+@app.post("/save_transaction")
+async def save_transaction(transaction: PurchaseRecord):
+    history_collection.insert_one(transaction.dict())
+    return {"message": "Transaction saved successfully"}
+
+# Fetch user's purchase history
+@app.get("/get_purchase_history")
+async def get_purchase_history(username: str):
+    transactions = list(history_collection.find({"username": username}))
+    if not transactions:
+        return {"message": "No transactions found"}
+
+    return [
+        {
+            "productName": t["productName"],
+            "quantity": t["quantity"],
+            "amount": t["amount"],
+        }
+        for t in transactions
+    ]
 
 # Simulate Vending Machine Dispensing Product
 @app.post("/dispense_product")
