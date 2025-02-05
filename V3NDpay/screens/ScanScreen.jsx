@@ -9,7 +9,6 @@ const ScanScreen =  ({ route })  => {
   const [scanned, setScanned] = useState(false); // Ensures scanning happens once
   const navigation = useNavigation();
   const cameraRef = useRef(null);
-  // const username = "user123"; // Example username, change it as needed
   const { username } = route.params || { username: "Guest" };
 
   // Request camera permission
@@ -34,17 +33,6 @@ const ScanScreen =  ({ route })  => {
           Alert.alert("Error", "Invalid price in QR code.");
           return;
         }
-      //     // Save transaction in database
-      //  fetch(`${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/save_transaction`, {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     username,
-      //     productName: parsedData.productname,
-      //     quantity: parsedData.quantity,
-      //     amount: parsedData.total_price,
-      //   }),
-      // });
         navigation.replace("PaymentScreen", {
           username: username, // Ensure username is passed correctly here
           productName: parsedData.productname,
