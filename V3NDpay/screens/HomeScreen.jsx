@@ -1,6 +1,395 @@
 
+// import React, { useState, useEffect } from "react";
+// import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+// import axios from "axios";
+// import { useNavigation } from "@react-navigation/native";
+// import { Ionicons } from "@expo/vector-icons";
+// import IP_ADDRESS from "../components/IPAddresses";
+// import NavIcon from "../components/NavIcon";
+
+// const HomeScreen = ({ route }) => {
+//   const navigation = useNavigation();
+//   const { username } = route.params || { username: "Guest" };
+//   const [balance, setBalance] = useState(0.0);
+
+//   // Redirect guest to login or prompt to log in
+//   useEffect(() => {
+//     if (username === "Guest") {
+//       // Navigate to login screen or display a guest-specific UI
+//       Alert.alert("Guest User", "Please log in to continue.");
+//       navigation.replace("Login"); // Replace "Login" with your login screen name
+//     } else {
+//       // Fetch balance for logged-in users
+//       fetchBalance();
+//     }
+//   }, [username, navigation]);
+
+//   // Fetch user balance from backend
+//   const fetchBalance = async () => {
+//     try {
+//       const response = await axios.get(`${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/get_balance`, {
+//         params: { username },
+//       });
+//       setBalance(response.data.balance);
+//     } catch (error) {
+//       console.error("Error fetching balance:", error);
+//       Alert.alert("Error", "Could not fetch balance.");
+//     }
+//   };
+
+//   // Load balance function
+//   const loadBalance = async () => {
+//     try {
+//       const response = await axios.post(
+//         `${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/load_balance`,
+//         { username }
+//       );
+//       console.log("Response from backend:", response.data); // Log response
+//       Alert.alert("Success", response.data.message);
+//       setBalance(response.data.new_balance); // Update balance in the app
+//     } catch (error) {
+//       console.error("Error loading balance:", error.response ? error.response.data : error.message);
+//       Alert.alert("Error", "Could not load balance.");
+//     }
+//   };
+
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.welcomeText}>Welcome, {username}!</Text>
+//       <Text style={styles.balanceText}>Your balance is: NPR {balance.toFixed(2)}</Text>
+
+//       <TouchableOpacity style={styles.scanButton} onPress={() => navigation.navigate("ScanToPay", { username })}>
+//         <Ionicons name="scan" size={28} color="#fff" />
+//         <Text style={styles.buttonText}>Scan to Pay</Text>
+//       </TouchableOpacity>
+
+//       <TouchableOpacity style={styles.inventoryButton} onPress={() => navigation.navigate("Inventory")}>
+//         <Ionicons name="cart" size={28} color="#fff" />
+//         <Text style={styles.buttonText}>Browse Inventory</Text>
+//       </TouchableOpacity>
+
+//       {/* Load Balance Button */}
+//       <TouchableOpacity style={styles.loadBalanceButton} onPress={loadBalance}>
+//         <Ionicons name="add" size={28} color="#fff" />
+//         <Text style={styles.buttonText}>Load Balance</Text>
+//       </TouchableOpacity>
+
+//       {/* Bottom Navigation */}
+//       <View style={styles.bottomNav}>
+//         <NavIcon name="Home" icon="home" active onPress={() => {}} />
+//         <NavIcon name="Statement" icon="document-text" onPress={() => navigation.navigate("Statement", { username })} />
+//         <NavIcon name="Support" icon="help-circle" onPress={() => navigation.navigate("Support", { username })} />
+//         <NavIcon name="More" icon="apps" onPress={() => navigation.navigate("More", { username })} />
+//       </View>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: "#E8F5E9",
+//     justifyContent: "center",
+//     alignItems: "center",
+//     padding: 20,
+//   },
+//   welcomeText: {
+//     fontSize: 24,
+//     fontWeight: "bold",
+//     color: "#2E7D32",
+//     marginBottom: 10,
+//   },
+//   balanceText: {
+//     fontSize: 20,
+//     fontWeight: "bold",
+//     color: "#388E3C",
+//     marginBottom: 30,
+//   },
+//   scanButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#4CAF50",
+//     padding: 15,
+//     width: "80%",
+//     borderRadius: 10,
+//     marginBottom: 20,
+//   },
+//   inventoryButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#2E7D32",
+//     padding: 15,
+//     width: "80%",
+//     borderRadius: 10,
+//     marginBottom: 20,
+//   },
+//   loadBalanceButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#FF9800",
+//     padding: 15,
+//     width: "80%",
+//     borderRadius: 10,
+//     marginBottom: 20,
+//   },
+//   buttonText: {
+//     color: "#fff",
+//     fontSize: 18,
+//     fontWeight: "bold",
+//     marginLeft: 10,
+//   },
+//   bottomNav: {
+//     flexDirection: "row",
+//     justifyContent: "space-around",
+//     paddingVertical: 10,
+//     backgroundColor: "#fff",
+//     borderTopWidth: 1,
+//     borderColor: "#eee",
+//     position: "absolute", // Pin the bottom navigation to the bottom
+//     bottom: 0,
+//     left: 0,
+//     right: 0,
+//   },
+//   navIcon: {
+//     alignItems: "center",
+//   },
+//   navText: {
+//     fontSize: 12,
+//     color: "#aaa",
+//   },
+// });
+
+// export default HomeScreen;
+
+
+// //NEW UI
+// import React, { useState, useEffect } from "react";
+// import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from "react-native";
+// import axios from "axios";
+// import { useNavigation } from "@react-navigation/native";
+// import { Ionicons } from "@expo/vector-icons";
+// import IP_ADDRESS from "../components/IPAddresses";
+// import NavIcon from "../components/NavIcon";
+
+// const HomeScreen = ({ route }) => {
+//   const navigation = useNavigation();
+//   const { username } = route.params || { username: "Guest" };
+//   const [balance, setBalance] = useState(0.0);
+//   const [dateTime, setDateTime] = useState(new Date());
+
+//   useEffect(() => {
+//     if (username === "Guest") {
+//       Alert.alert("Guest User", "Please log in to continue.");
+//       navigation.replace("Login");
+//     } else {
+//       fetchBalance();
+//     }
+//     const timer = setInterval(() => setDateTime(new Date()), 1000);
+//     return () => clearInterval(timer);
+//   }, [username, navigation]);
+
+//   const fetchBalance = async () => {
+//     try {
+//       const response = await axios.get(`${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/get_balance`, {
+//         params: { username },
+//       });
+//       setBalance(response.data.balance);
+//     } catch (error) {
+//       console.error("Error fetching balance:", error);
+//       Alert.alert("Error", "Could not fetch balance.");
+//     }
+//   };
+
+//   const loadBalance = async () => {
+//     try {
+//       const response = await axios.post(
+//         `${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/load_balance`,
+//         { username }
+//       );
+//       Alert.alert("Success", response.data.message);
+//       setBalance(response.data.new_balance);
+//     } catch (error) {
+//       console.error("Error loading balance:", error.response ? error.response.data : error.message);
+//       Alert.alert("Error", "Could not load balance.");
+//     }
+//   };
+
+//   return (
+//     <View style={styles.container}>
+//       {/* Header Section */}
+//       <View style={styles.header}>
+//         <Text style={styles.timeText}>{dateTime.toLocaleTimeString()}</Text>
+//         <View style={styles.profileSection}>
+//           {/* /<Image source={require("../assets/profile.jpg")} style={styles.profileImage} /> */}
+//           <Text style={styles.usernameText}>Hi, {username}</Text>
+//         </View>
+//         <Ionicons name="notifications-outline"
+
+// size={24}
+// color="white"
+// style={styles.notificationIcon}
+// />
+// </View>
+
+// {/* Balance Section */}
+// <View style={styles.balanceContainer}>
+// <Ionicons name="wallet-outline" size={20} color="#fff" />
+// <Text style={styles.balanceLabel}>NPR</Text>
+// <Text style={styles.balanceAmount}>{balance.toFixed(2)}</Text>
+// <Text style={styles.balanceText}>Balance</Text>
+// </View>
+
+// <View style={styles.actionsContainer}>
+// <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate("ScanToPay", { username })}>
+// <Ionicons name="scan" size={28} color="#fff" />
+// <Text style={styles.buttonText}>Scan to Pay</Text>
+// </TouchableOpacity>
+
+// <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate("Inventory")}>
+// <Ionicons name="cart" size={28} color="#fff" />
+// <Text style={styles.buttonText}>Browse Inventory</Text>
+// </TouchableOpacity>
+
+// <TouchableOpacity style={styles.actionButton} onPress={loadBalance}>
+// <Ionicons name="add" size={28} color="#fff" />
+// <Text style={styles.buttonText}>Load Balance</Text>
+// </TouchableOpacity>
+// </View> 
+
+
+// {/* Bottom Navigation */}
+// <View style={styles.bottomNav}>
+// <NavIcon name="Home" icon="home" active onPress={() => {}} />
+// <NavIcon name="Statement" icon="document-text" onPress={() => navigation.navigate("Statement", { username })} />
+// <NavIcon name="Support" icon="help-circle" onPress={() => navigation.navigate("Support", { username })} />
+// <NavIcon name="More" icon="apps" onPress={() => navigation.navigate("More", { username })} />
+// </View>
+// </View>
+// );
+// };
+
+// const styles = StyleSheet.create({
+// container: {
+// flex: 1,
+// backgroundColor: "#E8F5E9",
+// paddingTop: 40,
+// },
+// header: {
+// backgroundColor: "#4CAF50",
+// paddingVertical: 10,
+// paddingHorizontal: 20,
+// flexDirection: "row",
+// alignItems: "center",
+// justifyContent: "center",
+// },
+// timeText: {
+// color: "white",
+// fontSize: 16,
+// },
+// profileSection: {
+// flexDirection: "row",
+// alignItems: "center",
+// },
+// profileImage: {
+// width: 40,
+// height: 40,
+// borderRadius: 20,
+// marginRight: 10,
+// },
+// usernameText: {
+// color: "white",
+// fontSize: 18,
+// fontWeight: "bold",
+// },
+// notificationIcon: {
+// marginLeft: 10,
+// },
+// balanceContainer: {
+// backgroundColor: "white",
+// margin: 15,
+// padding: 20,
+// borderRadius: 10,
+// alignItems: "center",
+// shadowColor: "#000",
+// shadowOffset: { width: 0, height: 2 },
+// shadowOpacity: 0.2,
+// shadowRadius: 5,
+// },
+// balanceLabel: {
+// fontSize: 18,
+// color: "#555",
+// },
+// balanceAmount: {
+// fontSize: 28,
+// fontWeight: "bold",
+// color: "#2E7D32",
+// },
+// balanceText: {
+// fontSize: 16,
+// color: "#777",
+// },
+//   scanButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#4CAF50",
+//     padding: 15,
+//     width: "80%",
+//     borderRadius: 10,
+//     marginBottom: 20,
+//   },
+//   inventoryButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#2E7D32",
+//     padding: 15,
+//     width: "80%",
+//     borderRadius: 10,
+//     marginBottom: 20,
+//   },
+//   loadBalanceButton: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     justifyContent: "center",
+//     backgroundColor: "#FF9800",
+//     padding: 15,
+//     width: "80%",
+//     borderRadius: 10,
+//     marginBottom: 20,
+//   },
+// buttonText: {
+// color: "#fff",
+// fontSize: 16,
+// fontWeight: "bold",
+// marginLeft: 10,
+
+// },
+// bottomNav: {
+// flexDirection: "row",
+// justifyContent: "space-around",
+// paddingVertical: 10,
+// backgroundColor: "#fff",
+// borderTopWidth: 1,
+// borderColor: "#eee",
+// position: "absolute",
+// bottom: 0,
+// left: 0,
+// right: 0,
+// },
+// });
+
+// export default HomeScreen;
+
+
+
+
+
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from "react-native";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,20 +400,19 @@ const HomeScreen = ({ route }) => {
   const navigation = useNavigation();
   const { username } = route.params || { username: "Guest" };
   const [balance, setBalance] = useState(0.0);
+  const [dateTime, setDateTime] = useState(new Date());
 
-  // Redirect guest to login or prompt to log in
   useEffect(() => {
     if (username === "Guest") {
-      // Navigate to login screen or display a guest-specific UI
       Alert.alert("Guest User", "Please log in to continue.");
-      navigation.replace("Login"); // Replace "Login" with your login screen name
+      navigation.replace("Login");
     } else {
-      // Fetch balance for logged-in users
       fetchBalance();
     }
+    const timer = setInterval(() => setDateTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, [username, navigation]);
 
-  // Fetch user balance from backend
   const fetchBalance = async () => {
     try {
       const response = await axios.get(`${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/get_balance`, {
@@ -37,16 +425,14 @@ const HomeScreen = ({ route }) => {
     }
   };
 
-  // Load balance function
   const loadBalance = async () => {
     try {
       const response = await axios.post(
         `${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/load_balance`,
         { username }
       );
-      console.log("Response from backend:", response.data); // Log response
       Alert.alert("Success", response.data.message);
-      setBalance(response.data.new_balance); // Update balance in the app
+      setBalance(response.data.new_balance);
     } catch (error) {
       console.error("Error loading balance:", error.response ? error.response.data : error.message);
       Alert.alert("Error", "Could not load balance.");
@@ -55,24 +441,43 @@ const HomeScreen = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.welcomeText}>Welcome, {username}!</Text>
-      <Text style={styles.balanceText}>Your balance is: NPR {balance.toFixed(2)}</Text>
+      {/* Header Section */}
+      <View style={styles.header}>
+      
 
-      <TouchableOpacity style={styles.scanButton} onPress={() => navigation.navigate("ScanToPay", { username })}>
-        <Ionicons name="scan" size={28} color="#fff" />
-        <Text style={styles.buttonText}>Scan to Pay</Text>
-      </TouchableOpacity>
+        <View style={styles.profileSection}>
+          
+          <Text style={styles.usernameText}>Hi, {username}</Text>
+        </View>
+        
+      </View>
+      
 
-      <TouchableOpacity style={styles.inventoryButton} onPress={() => navigation.navigate("Inventory")}>
-        <Ionicons name="cart" size={28} color="#fff" />
-        <Text style={styles.buttonText}>Browse Inventory</Text>
-      </TouchableOpacity>
+      {/* Balance Section */}
+      <View style={styles.balanceContainer}>
+        <Ionicons name="wallet-outline" size={20} color="#fff" />
+        <Text style={styles.balanceLabel}>NPR</Text>
+        <Text style={styles.balanceAmount}>{balance.toFixed(2)}</Text>
+        <Text style={styles.balanceText}>Balance</Text>
+      </View>
 
-      {/* Load Balance Button */}
-      <TouchableOpacity style={styles.loadBalanceButton} onPress={loadBalance}>
-        <Ionicons name="add" size={28} color="#fff" />
-        <Text style={styles.buttonText}>Load Balance</Text>
-      </TouchableOpacity>
+      {/* Action Buttons Section */}
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity style={styles.scanButton} onPress={() => navigation.navigate("ScanToPay", { username })}>
+          <Ionicons name="scan" size={28} color="#fff" />
+          <Text style={styles.buttonText}>Scan to Pay</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.inventoryButton} onPress={() => navigation.navigate("BrowseInventory", { username })}>
+          <Ionicons name="cart" size={28} color="#fff" />
+          <Text style={styles.buttonText}>Browse Inventory</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.loadBalanceButton} onPress={loadBalance}>
+          <Ionicons name="add" size={28} color="#fff" />
+          <Text style={styles.buttonText}>Load Balance</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
@@ -89,55 +494,102 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#E8F5E9",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    paddingTop: 40,
   },
-  welcomeText: {
-    fontSize: 24,
+  header: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeText: {
+    color: "white",
+    fontSize: 16,
+  },
+  profileSection: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  usernameText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  notificationIcon: {
+    marginLeft: 10,
+  },
+  balanceContainer: {
+    backgroundColor: "white",
+    margin: 15,
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+  },
+  balanceLabel: {
+    fontSize: 18,
+    color: "#555",
+  },
+  balanceAmount: {
+    fontSize: 28,
     fontWeight: "bold",
     color: "#2E7D32",
-    marginBottom: 10,
   },
   balanceText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#388E3C",
-    marginBottom: 30,
+    fontSize: 16,
+    color: "#777",
+  },
+  actionsContainer: {
+    flexDirection: "row",
+    justifyContent: "center", // Centers buttons horizontally
+    alignItems: "center",     // Centers buttons vertically
+    paddingHorizontal: 20,    // Optional: Add padding to avoid buttons touching the screen edges
+    flexWrap: 'wrap',         // Allow buttons to wrap if needed
   },
   scanButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    width: "80%",
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  inventoryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#2E7D32",
-    padding: 15,
-    width: "80%",
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  loadBalanceButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FF9800",
-    padding: 15,
-    width: "80%",
-    borderRadius: 10,
-    marginBottom: 20,
-  },
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#4CAF50",
+        padding: 15,
+        width: "80%",
+        borderRadius: 10,
+        marginBottom: 20,
+      },
+      inventoryButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#2E7D32",
+        padding: 15,
+        width: "80%",
+        borderRadius: 10,
+        marginBottom: 20,
+      },
+      loadBalanceButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FF9800",
+        padding: 15,
+        width: "80%",
+        borderRadius: 10,
+        marginBottom: 20,
+      },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     marginLeft: 10,
   },
@@ -148,17 +600,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderColor: "#eee",
-    position: "absolute", // Pin the bottom navigation to the bottom
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-  },
-  navIcon: {
-    alignItems: "center",
-  },
-  navText: {
-    fontSize: 12,
-    color: "#aaa",
   },
 });
 

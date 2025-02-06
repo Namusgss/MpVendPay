@@ -14,12 +14,15 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "This app needs access to the camera to scan QR codes."
-      }
+        "NSCameraUsageDescription": "This app needs access to the camera to scan QR codes.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.mrnamus.V3NDpay"
     },
     "android": {
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -45,6 +48,11 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-barcode-scanner"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e8513fdc-348f-4720-a1cd-b2e1e9740967"
+      }
+    }
   }
 }
