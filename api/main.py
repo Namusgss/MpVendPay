@@ -9,6 +9,8 @@ import socket
 import random
 from datetime import datetime
 
+# Temporary in-memory transaction flags to manage active transactions
+transaction_flags = {}
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -174,8 +176,53 @@ async def process_payment(request: PaymentRequest):
 
 
 # Save transaction after successful payment
+# @app.post("/save_transaction")
+# async def save_transaction(transaction: PurchaseRecord):
+#     try:
+#         # Log the received transaction data
+#         print("Transaction Data Received:", transaction)
+
+#         # Manually construct a dictionary from the Pydantic model attributes
+#         transaction_data = {
+#             "username": transaction.username,
+#             "productName": transaction.productName,
+#             "quantity": transaction.quantity,
+#             "amount": transaction.amount,
+#             "transactionDate": transaction.transactionDate,  # Save only date
+#             "transactionTime": transaction.transactionTime,  # Save only time
+#         }
+
+#         # Insert into the database
+#         result = history_collection.insert_one(transaction_data)
+
+#         if not result.inserted_id:
+#             raise HTTPException(status_code=500, detail="Failed to save transaction")
+
+#         return {"message": "Transaction saved successfully"}
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+    
+
+# @app.get("/check_payment_status")
+# async def check_payment_status(username: str):
+#     # Look for the most recent purchase in the history
+#     transaction = history_collection.find_one(
+#         {"username": username},
+#         sort=[("transactionDate", -1), ("transactionTime", -1)]  # Get the latest transaction
+#     )
+
+#     if not transaction:
+#         raise HTTPException(status_code=404, detail="No transactions found for this user")
+
+#     # If the transaction is successful, return a success message
+#     if transaction["amount"] > 0:
+#         return {"status": "success", "product": transaction["productName"]}
+
+#     return {"status": "pending", "message": "Payment is pending"}
 @app.post("/save_transaction")
 async def save_transaction(transaction: PurchaseRecord):
+    global transaction_flags
     try:
         # Log the received transaction data
         print("Transaction Data Received:", transaction)
@@ -196,15 +243,25 @@ async def save_transaction(transaction: PurchaseRecord):
         if not result.inserted_id:
             raise HTTPException(status_code=500, detail="Failed to save transaction")
 
+        # Mark the transaction as done in the in-memory flags
+        transaction_flags[transaction.username] = {"transaction_done": True}
+
         return {"message": "Transaction saved successfully"}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-
 @app.get("/check_payment_status")
 async def check_payment_status(username: str):
-    # Look for the most recent purchase in the history
+    global transaction_flags
+
+    # Check if the user has an active transaction in memory
+    if username in transaction_flags:
+        if not transaction_flags[username]["transaction_done"]:
+            return {"status": "pending", "message": "Payment is pending"}
+        else:
+            return {"status": "success", "product": transaction_flags[username].get("product", "unknown")}
+
+    # Fallback: Check the database for the latest transaction (if no active transaction is found)
     transaction = history_collection.find_one(
         {"username": username},
         sort=[("transactionDate", -1), ("transactionTime", -1)]  # Get the latest transaction
@@ -213,11 +270,34 @@ async def check_payment_status(username: str):
     if not transaction:
         raise HTTPException(status_code=404, detail="No transactions found for this user")
 
-    # If the transaction is successful, return a success message
-    if transaction["amount"] > 0:
-        return {"status": "success", "product": transaction["productName"]}
+    return {"status": "success", "product": transaction["productName"]}
+@app.post("/process_payment")
+async def process_payment(request: PaymentRequest):
+    global transaction_flags
+    username = request.username.strip().lower()
+    
+    user = get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    return {"status": "pending", "message": "Payment is pending"}
+    current_balance = user.get("balance", 0.00)
+
+    if current_balance < request.amount:
+        raise HTTPException(status_code=400, detail="Insufficient balance")
+
+    # Deduct amount and update balance in MongoDB
+    new_balance = current_balance - request.amount
+    users_collection.update_one(
+        {"username": username},
+        {"$set": {"balance": new_balance}}
+    )
+
+    # Update the transaction_flags to mark it as done
+    if username in transaction_flags:
+        transaction_flags[username]["transaction_done"] = True
+        transaction_flags[username]["product"] = request.username  # Save product info
+
+    return {"message": "Payment processed successfully", "new_balance": new_balance}
 
 
 
