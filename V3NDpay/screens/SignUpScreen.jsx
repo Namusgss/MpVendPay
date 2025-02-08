@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -18,9 +18,19 @@ const SignUpScreen = ({ navigation }) => {
   const [number, setNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Password validation: Minimum 8 characters, at least 1 uppercase, 1 number
+  const validatePassword = (password) => {
+    return /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password);
+  };
+
   const handleSignUp = async () => {
     if (!username || !password || !email || !number) {
       Alert.alert("Error", "All fields are required.");
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      Alert.alert("Error", "Password must be at least 8 characters long, contain at least 1 uppercase letter, and 1 number.");
       return;
     }
 
@@ -51,7 +61,6 @@ const SignUpScreen = ({ navigation }) => {
   };
 
   return (
-
     <View style={styles.container}>
       <Text style={styles.title}>Create an Account</Text>
 
