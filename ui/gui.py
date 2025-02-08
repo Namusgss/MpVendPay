@@ -281,13 +281,18 @@ class VendingMachineApp:
 
 
     def check_payment_status(self):
-        """Check payment status from the server and update UI if successful."""
-        try:
-            response = requests.get(f"{self.api_url}/check_payment_status?username={self.USERNAME}")
+     
+
+            response = requests.get(
+                f"{self.api_url}/check_payment_status?username=biplop",
+            )
+
             if response.status_code == 200:
                 data = response.json()
+
                 if data.get("status") == "success" and "product" in data:
                     self.display_success_message(data["product"])
+                    self.transaction_id = None  # ✅ Clear transaction_id after successful verification
                 elif data.get("status") == "pending":
                     self.success_label.config(text="⌛ Payment Pending...", fg="orange")
                     self.success_label.pack(pady=20)
@@ -299,8 +304,7 @@ class VendingMachineApp:
                     self.success_label.pack(pady=20)
             else:
                 print(f"Failed to retrieve payment status. HTTP Status code: {response.status_code}")
-        except requests.RequestException as e:
-            print("Error checking payment status:", e)
+
 
 
     def display_success_message(self, product):

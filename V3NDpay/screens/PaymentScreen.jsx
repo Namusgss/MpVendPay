@@ -20,18 +20,37 @@ const PaymentScreen = () => {
     console.log("🔄 Processing payment...");
     console.log("Username:", username);
     console.log("Amount:", amount);
-
+  
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
       Alert.alert("Error", "Invalid amount");
       return;
     }
-
+  
     try {
       // Get current date & time
-      const transactionTime = new Date().toISOString(); // Saves in ISO format (YYYY-MM-DDTHH:mm:ss.sssZ)
-
-      // ✅ Process Payment (Deduct from Database)
+      const transactionDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      const transactionTime = new Date().toLocaleTimeString("en-US", { hour12: true }); // HH:MM:SS AM/PM
+  
+      // ✅ Step 1: Save the Transaction First (Set `flag: None`)
+      const purchaseRecord = {
+        username,
+        productName,
+        quantity,
+        amount: parseFloat(amount),
+        transactionDate,
+        transactionTime,
+      };
+  
+      const saveTransactionResponse = await axios.post(
+        `${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/save_transaction`,
+        purchaseRecord,
+        { headers: { "Content-Type": "application/json" } }
+      );
+  
+      console.log("✅ Transaction saved:", saveTransactionResponse.data);
+  
+      // ✅ Step 2: Process the Payment (Updates `flag: True` for latest transaction)
       const paymentResponse = await axios.post(
         `${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/process_payment`,
         {
@@ -40,47 +59,30 @@ const PaymentScreen = () => {
         },
         { headers: { "Content-Type": "application/json" } }
       );
-
+  
       console.log("✅ Payment Success:", paymentResponse.data);
-
-      // ✅ Save Transaction with Date/Time
-      const purchaseRecord = {
-        username,
-        productName,
-        quantity,
-        amount: parseFloat(amount),
-        transactionDate: new Date().toISOString().split("T")[0], // Extract date (YYYY-MM-DD)
-        transactionTime: new Date().toLocaleTimeString(), // Extract time (HH:MM:SS)
-      };
-
-      const saveTransactionResponse = await axios.post(
-        `${IP_ADDRESS.LOCAL_IP}:${IP_ADDRESS.LOCAL_PORT}/save_transaction`,
-        purchaseRecord,
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      console.log("✅ Transaction saved:", saveTransactionResponse.data);
-
-      // ✅ Show success alert
+  
+      // ✅ Step 3: Show success alert
       Alert.alert(
         "Payment Successful",
-        `You paid NPR ${amount} for ${quantity}x ${productName} on ${new Date(transactionTime).toLocaleString()}.`
+        `You paid NPR ${amount} for ${quantity}x ${productName} on ${new Date().toLocaleString()}.`
       );
-
-      // ✅ Navigate back to HomeScreen with username
+  
+      // ✅ Step 4: Navigate back to HomeScreen
       navigation.replace("Home", { username });
-
+  
     } catch (error) {
       console.error("❌ Payment error:", error);
-      
+  
       let errorMessage = "Transaction failed. Please try again.";
       if (error.response) {
         errorMessage = error.response.data?.detail || error.response.data?.message || errorMessage;
       }
-
+  
       Alert.alert("Error", errorMessage);
     }
   };
+  
 
   return (
     <View style={styles.container}>

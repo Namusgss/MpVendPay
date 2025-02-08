@@ -7,7 +7,8 @@ from pymongo import MongoClient
 from datetime import datetime
 import socket
 import random
-from datetime import datetime
+from uuid import uuid4 
+from datetime import datetime, timedelta
 
 # Temporary in-memory transaction flags to manage active transactions
 transaction_flags = {}
@@ -220,62 +221,41 @@ async def process_payment(request: PaymentRequest):
 #         return {"status": "success", "product": transaction["productName"]}
 
 #     return {"status": "pending", "message": "Payment is pending"}
+
+ # For generating unique transaction IDs
+
 @app.post("/save_transaction")
 async def save_transaction(transaction: PurchaseRecord):
-    global transaction_flags
     try:
-        # Log the received transaction data
-        print("Transaction Data Received:", transaction)
+        # Generate a unique transaction ID
+        transaction_id = str(uuid4())
 
-        # Manually construct a dictionary from the Pydantic model attributes
         transaction_data = {
+            "transaction_id": transaction_id,  # Unique ID
             "username": transaction.username,
             "productName": transaction.productName,
             "quantity": transaction.quantity,
             "amount": transaction.amount,
-            "transactionDate": transaction.transactionDate,  # Save only date
-            "transactionTime": transaction.transactionTime,  # Save only time
+            "transactionDate": transaction.transactionDate,  # YYYY-MM-DD
+            "transactionTime": transaction.transactionTime,  # HH:MM:SS AM/PM
         }
 
-        # Insert into the database
+        # Insert transaction into the database
         result = history_collection.insert_one(transaction_data)
 
         if not result.inserted_id:
             raise HTTPException(status_code=500, detail="Failed to save transaction")
 
-        # Mark the transaction as done in the in-memory flags
-        transaction_flags[transaction.username] = {"transaction_done": True}
-
-        return {"message": "Transaction saved successfully"}
+        return {"message": "Transaction saved successfully", "transaction_id": transaction_id}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-@app.get("/check_payment_status")
-async def check_payment_status(username: str):
-    global transaction_flags
-
-    # Check if the user has an active transaction in memory
-    if username in transaction_flags:
-        if not transaction_flags[username]["transaction_done"]:
-            return {"status": "pending", "message": "Payment is pending"}
-        else:
-            return {"status": "success", "product": transaction_flags[username].get("product", "unknown")}
-
-    # Fallback: Check the database for the latest transaction (if no active transaction is found)
-    transaction = history_collection.find_one(
-        {"username": username},
-        sort=[("transactionDate", -1), ("transactionTime", -1)]  # Get the latest transaction
-    )
-
-    if not transaction:
-        raise HTTPException(status_code=404, detail="No transactions found for this user")
-
-    return {"status": "success", "product": transaction["productName"]}
+    
+    
 @app.post("/process_payment")
 async def process_payment(request: PaymentRequest):
-    global transaction_flags
     username = request.username.strip().lower()
-    
+
     user = get_user_by_username(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -292,12 +272,43 @@ async def process_payment(request: PaymentRequest):
         {"$set": {"balance": new_balance}}
     )
 
-    # Update the transaction_flags to mark it as done
-    if username in transaction_flags:
-        transaction_flags[username]["transaction_done"] = True
-        transaction_flags[username]["product"] = request.username  # Save product info
+    # ✅ Find the latest unpaid transaction and mark it as paid
+    latest_transaction = history_collection.find_one(
+        sort=[("transactionDate", -1), ("transactionTime", -1)]
+    )
 
-    return {"message": "Payment processed successfully", "new_balance": new_balance}
+    if latest_transaction:
+        history_collection.update_one(
+            {"_id": latest_transaction["_id"]},
+        )
+        return {"message": "Payment processed successfully", "transaction_id": latest_transaction["transaction_id"]}
+
+    return {"message": "No pending transactions found"}
+
+
+
+@app.get("/check_payment_status")
+async def check_payment_status(username: str):
+    # ✅ Fetch the latest transaction for the user
+    latest_transaction = history_collection.find_one(
+        {"username": username},
+        sort=[("transactionDate", -1), ("transactionTime", -1)]
+    )
+
+    if not latest_transaction:
+        return {"status": "no_transaction", "message": "No transaction found"}
+
+    if latest_transaction:
+        history_collection.update_one(
+                {"_id": latest_transaction["_id"]},
+                {"$set": {"transaction_id": None}}  # Remove transaction ID after checking
+            )
+        return {"status": "success", "product": latest_transaction["productName"]}
+
+
+
+
+
 
 
 
