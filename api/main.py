@@ -9,12 +9,16 @@ import socket
 import random
 from uuid import uuid4 
 from datetime import datetime, timedelta
+from fastapi import Request
+
 
 # Temporary in-memory transaction flags to manage active transactions
 transaction_flags = {}
 
 # Initialize FastAPI app
 app = FastAPI()
+
+current_user = None
 
 # Enable CORS for frontend integration
 app.add_middleware(
@@ -87,6 +91,20 @@ class LoadBalanceRequest(BaseModel):
 # Function to get user by username
 def get_user_by_username(username: str):
     return users_collection.find_one({"username": username.strip().lower()})  # ✅ Normalize username to lowercase
+
+@app.get("/get_username")
+async def get_username(request: Request):  # Get username from query parameters
+    username = request.query_params.get("username")
+    if not username:
+        return {"error": "Username is required"}
+    
+    db_user = get_user_by_username(username)
+    
+    if db_user:
+        return {"message": "User found", "user": db_user}
+    else:
+        return {"error": "User not found"}
+
 
 # Register User Endpoint
 @app.post("/register")
@@ -290,18 +308,26 @@ async def process_payment(request: PaymentRequest):
 @app.get("/check_payment_status")
 async def check_payment_status(username: str):
     # ✅ Fetch the latest transaction for the user
+    # latest_transaction = history_collection.find_one(
+    #     {"username": username},
+    #     sort=[("transactionDate", -1), ("transactionTime", -1)]
+    # )
     latest_transaction = history_collection.find_one(
-        {"username": username},
-        sort=[("transactionDate", -1), ("transactionTime", -1)]
-    )
-
+    {"username": username, "paymentChecked": {"$ne": True}},  # ✅ Only get unchecked payments
+    sort=[("transactionDate", -1), ("transactionTime", -1)]
+)
     if not latest_transaction:
         return {"status": "no_transaction", "message": "No transaction found"}
 
     if latest_transaction:
         history_collection.update_one(
+                # {"_id": latest_transaction["_id"]},
+                # {"$set": {"transaction_id": None}}  # Remove transaction ID after checking
+                # history_collection.update_one(
                 {"_id": latest_transaction["_id"]},
-                {"$set": {"transaction_id": None}}  # Remove transaction ID after checking
+                {"$set": {"paymentChecked": True}}
+                # )
+
             )
         return {"status": "success", "product": latest_transaction["productName"]}
 
@@ -354,6 +380,18 @@ async def load_balance(request: LoadBalanceRequest):  # ✅ Use the new model
     )
 
     return {"message": f"Balance updated by {random_amount} NPR", "new_balance": new_balance}
+
+# # logout user
+# @app.post("/logout")
+# async def logout_user():
+#     global current_user
+#     print("Logout request received")
+#     # global transaction_flags
+#     # transaction_flags.clear()  # Clear any in-memory flags for active transactions
+#     current_user = None
+
+#     return {"message": "Logout successful, session cleared."}
+
     
 # Print the actual IP and accessible address on startup
 @app.on_event("startup")
