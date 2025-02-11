@@ -1,3 +1,0 @@
-line 154v and 155 changed
-#reset quantity lebel in the UI
-        self.quantity_label.config(text="1")
