@@ -6,10 +6,28 @@ from io import BytesIO
 from qr_code_generator import generate_qr_code
 import os
 import uuid
+import RPi.GPIO as GPIO
+import time
+
+# Define motor control pins
+MOTOR_1_PIN = 17  # GPIO pin for Noodles motor
+MOTOR_2_PIN = 18  # GPIO pin for Chips motor (Updated to GPIO 18)
+PWM_PIN = 22       # GPIO pin for PWM (Motor speed control)
+
+# Setup GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(MOTOR_1_PIN, GPIO.OUT)
+GPIO.setup(MOTOR_2_PIN, GPIO.OUT)
+GPIO.setup(PWM_PIN, GPIO.OUT)
+# Setup PWM (using 100Hz as example, adjust frequency and duty cycle as needed)
+motor_pwm = GPIO.PWM(PWM_PIN, 100)  # 100Hz frequency
+motor_pwm.start(0)  # Start with 0% duty cycle (motor off)
+
+
 class VendingMachineApp:
     def __init__(self, root, api_url):
         self.root = root
-        self.root.geometry("800x600")
+        self.root.geometry("1024x600")
         self.root.title("Vending Machine")
         self.root.configure(bg="#f2f2f2")
         self.api_url = api_url
@@ -31,7 +49,7 @@ class VendingMachineApp:
         # Top label for "Smart Vending Machine" at the top center
         self.top_frame = tk.Frame(self.left_frame, bg="#f2f2f2")
         self.top_frame.pack(side="top", fill="x")
-        self.details_label = tk.Label(self.top_frame, text="Smart Vending Machine", font=("Helvetica", 18, "bold"),
+        self.details_label = tk.Label(self.top_frame, text="VENDme", font=("Helvetica", 18, "bold"),
                                       bg="#f2f2f2")
         self.details_label.pack(pady=10, side="top")
 
@@ -70,7 +88,7 @@ class VendingMachineApp:
         self.footer_label = tk.Label(self.product_frame, text="A Major Project by BEI077", font=("Arial", 12, "italic"),
                                      bg="#f2f2f2")
         self.footer_label.pack(pady=10)
-        self.names_label = tk.Label(self.product_frame, text="Suman Bhandari\tACE077BEI037",
+        self.names_label = tk.Label(self.product_frame, text="Rojdeep Kharel\tACE077BEI037\nSagar Pantha\tACE077BEI037\nSuman Bhandari\tACE077BEI037",
                                     font=("Arial", 12), bg="#f2f2f2")
         self.names_label.pack(pady=5)
         self.success_label = tk.Label(self.right_frame, bg="#f2f2f2", font=("Arial", 14))
@@ -303,23 +321,7 @@ class VendingMachineApp:
     #     except requests.exceptions.RequestException as e:
     #         print(f"Login failed: {e}")
 
-    # def fetch_username(self, username, password):
-    #     """Fetch username after login using credentials."""
-    #     try:
-    #         response = requests.get(
-    #             f"{self.api_url}/get_username",
-    #             params={"username": username, "password": password}
-    #         )
-    #         response.raise_for_status()
-    #         data = response.json()
-
-    #         self.USERNAME = data.get("username")  # Store username
-    #         print(f"✅ Fetched username: {self.USERNAME}")
-    #         return self.USERNAME
-
-    #     except requests.exceptions.RequestException as e:
-    #         print(f"❌ Failed to fetch username: {e}")
-    #         return None  # Return None on failure
+    
 
     def check_payment_status(self):
         if self.transaction_id and self.USERNAME:  # Ensure both are available
@@ -332,7 +334,9 @@ class VendingMachineApp:
                 print(data)
 
                 if data.get("status") == "success" and "product" in data:
-                    self.display_success_message(data["product"])   
+                    self.display_success_message(data["product"]) 
+                     # Trigger the correct motor
+                    self.trigger_motor(data["product"])
                 elif data.get("status") == "pending":
                     self.success_label.config(text="⌛ Payment Pending...", fg="orange")
                     self.success_label.pack(pady=20)
@@ -360,6 +364,28 @@ class VendingMachineApp:
         success_label.pack()
 
         self.root.after(15000, self.reset_gui)
+
+    def trigger_motor(self, product):
+        """Trigger the motor based on the product name."""
+        if product.lower() == "noodles":
+            self.rotate_motor(MOTOR_1_PIN)
+        elif product.lower() == "chips":
+            self.rotate_motor(MOTOR_2_PIN)  # Updated to use GPIO 18 for chips motor
+        else:
+            print(f"Unknown product: {product}")
+
+    def rotate_motor(self, motor_pin, speed=50):
+        """Rotate the motor for a set duration with PWM speed control."""
+        print(f"Activating motor on pin {motor_pin} with {speed}% speed for 2 seconds.")
+        
+        # Set PWM duty cycle to control motor speed
+        motor_pwm.ChangeDutyCycle(speed)  # Set the speed (0-100%)
+        
+        GPIO.output(motor_pin, GPIO.HIGH)  # Turn on the motor
+        time.sleep(20)  # Rotate for 2 seconds (adjust as needed)
+        GPIO.output(motor_pin, GPIO.LOW)  # Stop the motor
+        motor_pwm.ChangeDutyCycle(0)  # Stop PWM
+        print("Motor stopped.")
 
     def update_payment_status(self):
         """Regularly update payment status."""
