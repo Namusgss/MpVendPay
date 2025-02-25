@@ -9,19 +9,29 @@ import uuid
 import RPi.GPIO as GPIO
 import time
 
-# Define motor control pins
-MOTOR_1_PIN = 17  # GPIO pin for Noodles motor
-MOTOR_2_PIN = 18  # GPIO pin for Chips motor (Updated to GPIO 18)
-PWM_PIN = 22       # GPIO pin for PWM (Motor speed control)
+
+# Define motor control pins (updated with new pin numbers)
+MOTOR_1_PIN_1 = 23  # GPIO pin for Noodles motor direction 1
+MOTOR_1_PIN_2 = 24  # GPIO pin for Noodles motor direction 2
+MOTOR_2_PIN_1 = 17  # GPIO pin for Chips motor direction 1
+MOTOR_2_PIN_2 = 27  # GPIO pin for Chips motor direction 2
+PWM_PIN_1 = 12       # GPIO pin for Noodles motor PWM (speed control)
+PWM_PIN_2 = 13       # GPIO pin for Chips motor PWM (speed control)
 
 # Setup GPIO
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(MOTOR_1_PIN, GPIO.OUT)
-GPIO.setup(MOTOR_2_PIN, GPIO.OUT)
-GPIO.setup(PWM_PIN, GPIO.OUT)
-# Setup PWM (using 100Hz as example, adjust frequency and duty cycle as needed)
-motor_pwm = GPIO.PWM(PWM_PIN, 100)  # 100Hz frequency
-motor_pwm.start(0)  # Start with 0% duty cycle (motor off)
+GPIO.setup(MOTOR_1_PIN_1, GPIO.OUT)
+GPIO.setup(MOTOR_1_PIN_2, GPIO.OUT)
+GPIO.setup(MOTOR_2_PIN_1, GPIO.OUT)
+GPIO.setup(MOTOR_2_PIN_2, GPIO.OUT)
+GPIO.setup(PWM_PIN_1, GPIO.OUT)
+GPIO.setup(PWM_PIN_2, GPIO.OUT)
+
+# Setup PWM (100Hz frequency for motor control)
+motor_pwm_1 = GPIO.PWM(PWM_PIN_1, 100)  # PWM for Noodles motor
+motor_pwm_2 = GPIO.PWM(PWM_PIN_2, 100)  # PWM for Chips motor
+motor_pwm_1.start(0)  # Start Noodles motor with 0% duty cycle (motor off)
+motor_pwm_2.start(0)  # Start Chips motor with 0% duty cycle (motor off)
 
 
 class VendingMachineApp:
@@ -32,8 +42,12 @@ class VendingMachineApp:
         self.root.configure(bg="#f2f2f2")
         self.api_url = api_url
         self.products = self.fetch_products()
-        self.USERNAME = "suman"
-        # self.USERNAME =None
+        self.USERNAME = ""
+        self.root.attributes('-fullscreen', True)
+        self.root.bind ('<Escape>',self.exit_fullscreen)
+        self.motor_running = False  # Flag to prevent motor interruptions
+        self.transaction_id = ""
+        self.dispense_quantity = 1
 
         #SUCCESS LABEL
    
@@ -88,7 +102,7 @@ class VendingMachineApp:
         self.footer_label = tk.Label(self.product_frame, text="A Major Project by BEI077", font=("Arial", 12, "italic"),
                                      bg="#f2f2f2")
         self.footer_label.pack(pady=10)
-        self.names_label = tk.Label(self.product_frame, text="Rojdeep Kharel\tACE077BEI037\nSagar Pantha\tACE077BEI037\nSuman Bhandari\tACE077BEI037",
+        self.names_label = tk.Label(self.product_frame, text="Rojdeep Kharel\tACE077BEI029\nSagar Pantha\tACE077BEI030\nSuman Bhandari\tACE077BEI037",
                                     font=("Arial", 12), bg="#f2f2f2")
         self.names_label.pack(pady=5)
         self.success_label = tk.Label(self.right_frame, bg="#f2f2f2", font=("Arial", 14))
@@ -258,7 +272,8 @@ class VendingMachineApp:
 
                 # Calculate total price
                 total_price = float(self.selected_product["price"]) * self.selected_quantity
-
+            
+                self.dispense_quantity= self.selected_quantity
                 # ✅ Include transaction ID in QR data
                 qr_data = {
                     "transaction_id": self.transaction_id,
@@ -299,32 +314,12 @@ class VendingMachineApp:
         error_label.pack(pady=10)
 
 
-        
-    # def login_user(self, username, password):
-    #     """Send login request and store the username."""
-    #     try:
-    #         # Send login request
-    #         response = requests.post(f"{self.api_url}/login", json={"username": username, "password": password})
-    #         response.raise_for_status()
-
-    #         print("Response status code:", response.status_code)
-    #         print("Response data:", response.json())
-
-    #         # Extract username and store it
-    #         data = response.json()
-    #         self.username = data["username"]  # Store the username from the response
-    #         print(f"Logged in as: {self.username}")
-
-    #         # Now you can use the username as needed
-    #         self.USERNAME = self.username  # Set this in your VendingMachineApp class if needed
-
-    #     except requests.exceptions.RequestException as e:
-    #         print(f"Login failed: {e}")
-
-    
-
     def check_payment_status(self):
-        if self.transaction_id and self.USERNAME:  # Ensure both are available
+        response = requests.get(f"{self.api_url}/get_username_by_transaction?transaction_id={self.transaction_id}")
+        user_name = response.json()
+        self.USERNAME = user_name.get("username")
+        print(self.USERNAME)
+        if self.transaction_id and self.USERNAME and not self.motor_running:  # Check only if motor is not running
             response = requests.get(
                 f"{self.api_url}/check_payment_status?username={self.USERNAME}&transactionId={self.transaction_id}"
             )
@@ -335,8 +330,10 @@ class VendingMachineApp:
 
                 if data.get("status") == "success" and "product" in data:
                     self.display_success_message(data["product"]) 
-                     # Trigger the correct motor
-                    self.trigger_motor(data["product"])
+                    
+                    # Check if the motor is already running to prevent re-triggering
+                    if not self.motor_running:
+                        self.trigger_motor(data["product"])
                 elif data.get("status") == "pending":
                     self.success_label.config(text="⌛ Payment Pending...", fg="orange")
                     self.success_label.pack(pady=20)
@@ -349,17 +346,15 @@ class VendingMachineApp:
             else:
                 print(f"❌ Failed to retrieve payment status. HTTP Status code: {response.status_code}")
         else:
-            print("⚠ Missing transaction ID or username for payment check.")
-
+            print("⚠ Missing transaction ID, username, or motor still running.")
 
     def display_success_message(self, product):
+        username=self.USERNAME
         """Display the payment success message in the same window."""
-        # Clear previous widgets or messages (if any)
         for widget in self.root.winfo_children():
             widget.destroy()
-
-    # Add success message to the same window
-        success_label = tk.Label(self.root, text=f"✅ Payment Successful!\n Dispensing your {product}\nEnjoy your {product}!\n Do visit again", 
+    
+        success_label = tk.Label(self.root, text=f"✅ Payment Successful! for {self.USERNAME}\n Dispensing your {product}\nEnjoy your {product}!\n Do visit again", 
                              font=("Arial", 22), fg="green", bg="#f2f2f2", padx=20, pady=40)
         success_label.pack()
 
@@ -368,38 +363,64 @@ class VendingMachineApp:
     def trigger_motor(self, product):
         """Trigger the motor based on the product name."""
         if product.lower() == "noodles":
-            self.rotate_motor(MOTOR_1_PIN)
-        elif product.lower() == "chips":
-            self.rotate_motor(MOTOR_2_PIN)  # Updated to use GPIO 18 for chips motor
+            self.rotate_motor("n", self.selected_quantity)
+        elif product.lower() == "biscuits":
+            self.rotate_motor("b", self.selected_quantity)
         else:
             print(f"Unknown product: {product}")
 
-    def rotate_motor(self, motor_pin, speed=50):
-        """Rotate the motor for a set duration with PWM speed control."""
-        print(f"Activating motor on pin {motor_pin} with {speed}% speed for 2 seconds.")
-        
-        # Set PWM duty cycle to control motor speed
-        motor_pwm.ChangeDutyCycle(speed)  # Set the speed (0-100%)
-        
-        GPIO.output(motor_pin, GPIO.HIGH)  # Turn on the motor
-        time.sleep(20)  # Rotate for 2 seconds (adjust as needed)
-        GPIO.output(motor_pin, GPIO.LOW)  # Stop the motor
-        motor_pwm.ChangeDutyCycle(0)  # Stop PWM
-        print("Motor stopped.")
+    
+    def rotate_motor(self, motor_name, quantity, elapsed=0):
+        """Simulate motor rotation for 10 seconds without blocking the GUI."""
+        if elapsed == 0:  # Start motor
+            if self.motor_running:
+                print(f"Motor is already running. Ignoring new trigger for {motor_name}.")
+                return
+            self.motor_running = True  # Lock motor activation
+            
+            if motor_name == "n" :  # Noodles motor
+                motor_pwm_1.start(100)  # Start Noodles motor with 0% duty cycle (motor off)
+                motor_pwm_2.start(0) 
+                if self.dispense_quantity > 0:
+                    run_time = 7 * self.dispense_quantity
+                    run_time = int(run_time)  # 5 seconds per quantity
+                GPIO.output(MOTOR_1_PIN_1, GPIO.LOW)  # Set direction to forward
+                GPIO.output(MOTOR_1_PIN_2, GPIO.HIGH)
+                time.sleep(run_time)
+                motor_pwm_1.start(0)  # Start Noodles motor with 0% duty cycle (motor off)
+                motor_pwm_2.start(0)  
+                self.motor_running = True
+            elif motor_name == "b":  
+                motor_pwm_1.start(0)  # Start Noodles motor with 0% duty cycle (motor off)
+                motor_pwm_2.start(100) 
+                if self.dispense_quantity > 0:
+                    run_time = 7 * self.dispense_quantity
+                    run_time = int(run_time) 
+                GPIO.output(MOTOR_2_PIN_1, GPIO.HIGH)  # Set direction to forward
+                GPIO.output(MOTOR_2_PIN_2, GPIO.LOW)
+                time.sleep(run_time)
+                motor_pwm_1.start(0)  # Start Noodles motor with 0% duty cycle (motor off)
+                motor_pwm_2.start(0)  
+                self.motor_running= True
+        print(f"Starting {motor_name} at {speed}% speed for 10 seconds.")
+
 
     def update_payment_status(self):
-        """Regularly update payment status."""
-        self.check_payment_status()
+        """Continuously check payment status but only trigger if motor isn't running."""
+        if not self.motor_running:  # Ensure the motor is not interrupted
+            self.check_payment_status()
         self.root.after(5000, self.update_payment_status)  # Check every 5 seconds
+        
     def reset_gui(self):
         """Reset the GUI to its initial state after a successful transaction."""
-        # Clear previous widgets or messages (if any)
         for widget in self.root.winfo_children():
             widget.destroy()
-        # Clear selected product and quantity
-        self.selected_product = None
-        self.selected_quantity = 1
+
         self.transaction_id = None  # Clear transaction ID
-# Reinitialize the interface
+        self.motor_running = False  # Ensure motor flag is reset
+        
+        # Reinitialize the interface
         self.__init__(self.root, self.api_url)
         
+    def exit_fullscreen(self, event=None):
+        self.root.attributes('-fullscreen',False)       
